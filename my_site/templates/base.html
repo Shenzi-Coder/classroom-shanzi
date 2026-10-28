@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}الشن - کلاس آنلاین{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header class="topbar">
+        <div class="brand">
+            <span class="logo">🎓</span>
+            <span>الشن</span>
+            <small class="company">| شرکت شنزی</small>
+        </div>
+        {% if session.username %}
+        <nav class="nav">
+            <span class="welcome">👤 {{ session.name }}</span>
+            {% if session.role == 'admin' %}
+                <a href="{{ url_for('dashboard') }}">داشبورد</a>
+                <a href="{{ url_for('add_user') }}">افزودن کاربر</a>
+            {% elif session.role == 'teacher' %}
+                <a href="{{ url_for('dashboard') }}">داشبورد</a>
+            {% else %}
+                <a href="{{ url_for('student_class') }}">کلاس من</a>
+            {% endif %}
+            <a href="{{ url_for('logout') }}" class="logout">خروج</a>
+        </nav>
+        {% endif %}
+    </header>
+
+    <main class="main">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+        © 2025 الشن | شرکت شنزی — تمامی حقوق محفوظ است.
+    </footer>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

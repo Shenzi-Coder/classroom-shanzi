@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}کلاس {{ c.teacher_name }}{% endblock %}
+{% block content %}
+<h1>🏫 کلاس {{ c.teacher_name }}</h1>
+
+<div class="classroom">
+    <div class="video-area">
+        <div class="video-placeholder">
+            🎥 در اینجا می‌توانید از گوشی یا کامپیوتر خود استریم کنید.
+            <br><small>(برای استریم واقعی از WebRTC استفاده کنید)</small>
+        </div>
+        <div class="stream-controls">
+            <button class="btn btn-primary" onclick="alert('دوربین روشن شد (نمونه)')">📷 روشن کردن دوربین</button>
+            <button class="btn btn-secondary" onclick="alert('میکروفن روشن شد (نمونه)')">🎤 روشن کردن میکروفن</button>
+            <button class="btn btn-danger" onclick="alert('استریم متوقف شد (نمونه)')">⏹ توقف</button>
+        </div>
+    </div>
+
+    <aside class="sidebar">
+        <h3>👩‍🎓 دانش‌آموزان ({{ c.students|length }})</h3>
+        <ul id="student-list">
+        {% for s in c.students %}
+            <li>{{ users[s].name if s in users else s }}</li>
+        {% endfor %}
+        </ul>
+
+        <h3>✋ دست‌های بالا</h3>
+        <ul id="hand-list">
+        {% for h in c.raised_hands %}
+            <li>
+                {{ users[h].name if h in users else h }}
+                <button class="btn btn-primary btn-sm" onclick="approveHand('{{ h }}')">اجازه</button>
+            </li>
+        {% endfor %}
+        </ul>
+    </aside>
+</div>
+
+<h3 style="margin-top:24px;">💬 چت کلاس</h3>
+<div class="chat-box">
+    <div id="messages" class="messages"></div>
+    <form onsubmit="sendMessage(event)">
+        <input type="text" id="msg-input" placeholder="پیام خود را بنویسید..." autocomplete="off">
+        <button type="submit" class="btn btn-primary">ارسال</button>
+    </form>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const CLASS_ID = "{{ class_id }}";
+
+function refresh() {
+    fetch(`/api/status/${CLASS_ID}`)
+        .then(r => r.json())
+        .then(data => {
+            const sl = document.getElementById('student-list');
+            sl.innerHTML = data.students.map(s => `<li>${s}</li>`).join('') || '<li class="muted">خالی</li>';
+            const hl = document.getElementById('hand-list');
+            hl.innerHTML = data.raised_hands.map(h =>
+                `<li>${h} <button class="btn btn-primary btn-sm" onclick="approveHand('${h}')">اجازه</button></li>`
+            ).join('') || '<li class="muted">دستی بالا نیست</li>';
+        });
+    fetch(`/api/messages/${CLASS_ID}`)
+        .then(r => r.json())
+        .then(data => {
+            const box = document.getElementById('messages');
+            box.innerHTML = data.messages.map(m =>
+                `<div class="msg ${m.role}"><b>${m.from}</b> <small>${m.time}</small><br>${m.text}</div>`
+            ).join('');
+            box.scrollTop = box.scrollHeight;
+        });
+}
+
+function approveHand(u) {
+    fetch(`/api/approve_hand/${CLASS_ID}/${u}`, {method: 'POST'}).then(refresh);
+}
+
+function sendMessage(e) {
+    e.preventDefault();
+    const input = document.getElementById('msg-input');
+    const fd = new FormData();
+    fd.append('message', input.value);
+    fetch(`/api/send_message/${CLASS_ID}`, {method: 'POST', body: fd})
+        .then(() => { input.value = ''; refresh(); });
+}
+
+setInterval(refresh, 2000);
+refresh();
+</script>
+{% endblock %}

@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}کلاس من{% endblock %}
+{% block content %}
+
+{% if not my_class %}
+    <h1>🏫 کلاس‌های موجود</h1>
+    <p>شما هنوز در هیچ کلاسی شرکت نکرده‌اید. یکی از کلاس‌های زیر را انتخاب کنید:</p>
+    <div class="cards">
+    {% for cid, c in classrooms.items() %}
+        <div class="card">
+            <h3>👨‍🏫 {{ c.teacher_name }}</h3>
+            <p>{{ c.students|length }} دانش‌آموز</p>
+            <a href="{{ url_for('join_class', class_id=cid) }}" class="btn btn-primary">پیوستن</a>
+        </div>
+    {% else %}
+        <p class="muted">هنوز کلاسی ایجاد نشده است.</p>
+    {% endfor %}
+    </div>
+{% else %}
+    <h1>🏫 کلاس {{ c.teacher_name }}</h1>
+
+    <div class="classroom">
+        <div class="video-area">
+            <div class="video-placeholder">
+                📺 استریم معلم در اینجا نمایش داده می‌شود.
+                <br><small>(برای پخش واقعی از WebRTC استفاده کنید)</small>
+            </div>
+            <div class="stream-controls">
+                <button class="btn btn-primary" onclick="alert('دوربین روشن شد (نمونه)')">📷 دوربین</button>
+                <button class="btn btn-secondary" onclick="alert('میکروفن روشن شد (نمونه)')">🎤 میکروفن</button>
+            </div>
+        </div>
+
+        <aside class="sidebar">
+            <h3>👩‍🎓 دانش‌آموزان ({{ c.students|length }})</h3>
+            <ul id="student-list">
+            {% for s in c.students %}
+                <li>{{ users[s].name if s in users else s }}</li>
+            {% endfor %}
+            </ul>
+
+            <h3>✋ وضعیت دست</h3>
+            <button id="hand-btn" class="btn btn-primary big" onclick="toggleHand()">✋ دستم را بالا می‌برم</button>
+            <p id="hand-status" class="muted"></p>
+
+            <a href="{{ url_for('leave_class', class_id=my_class) }}" class="btn btn-danger">🚪 خروج از کلاس</a>
+        </aside>
+    </div>
+
+    <h3 style="margin-top:24px;">💬 چت کلاس</h3>
+    <div class="chat-box">
+        <div id="messages" class="messages"></div>
+        <form onsubmit="sendMessage(event)">
+            <input type="text" id="msg-input" placeholder="پیام خود را بنویسید..." autocomplete="off">
+            <button type="submit" class="btn btn-primary">ارسال</button>
+        </form>
+    </div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+{% if my_class %}
+<script>
+const CLASS_ID = "{{ my_class }}";
+const ME = "{{ session.username }}";
+let handRaised = false;
+
+function refresh() {
+    fetch(`/api/status/${CLASS_ID}`)
+        .then(r => r.json())
+        .then(data => {
+            const sl = document.getElementById('student-list');
+            sl.innerHTML = data.students.map(s => `<li>${s}</li>`).join('') || '<li class="muted">خالی</li>';
+            handRaised = data.raised_hands.includes(ME);
+            const btn = document.getElementById('hand-btn');
+            const st = document.getElementById('hand-status');
+            if (handRaised) {
+                btn.textContent = '✋ دست پایین';
+                btn.classList.remove('btn-primary');
+                btn.classList.add('btn-danger');
+                st.textContent = 'دست شما بالا است — منتظر اجازه معلم باشید.';
+            } else {
+                btn.textContent = '✋ دستم را بالا می‌برم';
+                btn.classList.remove('btn-danger');
+                btn.classList.add('btn-primary');
+                st.textContent = '';
+            }
+        });
+    fetch(`/api/messages/${CLASS_ID}`)
+        .then(r => r.json())
+        .then(data => {
+            const box = document.getElementById('messages');
+            box.innerHTML = data.messages.map(m =>
+                `<div class="msg ${m.role}"><b>${m.from}</b> <small>${m.time}</small><br>${m.text}</div>`
+            ).join('');
+            box.scrollTop = box.scrollHeight;
+        });
+}
+
+function toggleHand() {
+    const url = handRaised ? `/api/lower_hand/${CLASS_ID}` : `/api/raise_hand/${CLASS_ID}`;
+    fetch(url, {method: 'POST'}).then(() => refresh());
+}
+
+function sendMessage(e) {
+    e.preventDefault();
+    const input = document.getElementById('msg-input');
+    const fd = new FormData();
+    fd.append('message', input.value);
+    fetch(`/api/send_message/${CLASS_ID}`, {method: 'POST', body: fd})
+        .then(() => { input.value = ''; refresh(); });
+}
+
+setInterval(refresh, 2000);
+refresh();
+</script>
+{% endif %}
+{% endblock %}

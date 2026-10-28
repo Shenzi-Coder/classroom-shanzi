@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}داشبورد{% endblock %}
+{% block content %}
+
+{% if role == 'admin' %}
+<h1>📋 داشبورد مدیر</h1>
+<p>به پنل مدیریت الشن خوش آمدید.</p>
+
+<div class="cards">
+    <div class="card">
+        <h3>👨‍🏫 معلم‌ها ({{ teachers|length }})</h3>
+        <ul>
+        {% for u, d in teachers.items() %}
+            <li>
+                <b>{{ d.name }}</b> — <span class="muted">{{ u }}</span>
+                <a class="btn btn-danger btn-sm" href="{{ url_for('delete_user', username=u) }}">حذف</a>
+            </li>
+        {% else %}
+            <li class="muted">هیچ معلمی ثبت نشده.</li>
+        {% endfor %}
+        </ul>
+    </div>
+
+    <div class="card">
+        <h3>👩‍🎓 دانش‌آموزها ({{ students|length }})</h3>
+        <ul>
+        {% for u, d in students.items() %}
+            <li>
+                <b>{{ d.name }}</b> — <span class="muted">{{ u }}</span>
+                <a class="btn btn-danger btn-sm" href="{{ url_for('delete_user', username=u) }}">حذف</a>
+            </li>
+        {% else %}
+            <li class="muted">هیچ دانش‌آموزی ثبت نشده.</li>
+        {% endfor %}
+        </ul>
+    </div>
+
+    <div class="card">
+        <h3>🏫 کلاس‌های فعال ({{ classrooms|length }})</h3>
+        <ul>
+        {% for cid, c in classrooms.items() %}
+            <li>
+                <b>{{ c.teacher_name }}</b> — {{ c.students|length }} دانش‌آموز
+            </li>
+        {% else %}
+            <li class="muted">کلاس فعالی وجود ندارد.</li>
+        {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<a href="{{ url_for('add_user') }}" class="btn btn-primary">➕ افزودن معلم / دانش‌آموز</a>
+
+{% elif role == 'teacher' %}
+<h1>👨‍🏫 داشبورد معلم</h1>
+<p>به کلاس آنلاین الشن خوش آمدید، {{ session.name }}.</p>
+
+{% if my_class %}
+    <a href="{{ url_for('classroom', class_id=my_class) }}" class="btn btn-primary">🏫 ورود به کلاس من</a>
+{% else %}
+    <form method="POST" action="{{ url_for('create_class') }}">
+        <button type="submit" class="btn btn-primary">🏫 ایجاد کلاس</button>
+    </form>
+{% endif %}
+
+<div class="card" style="margin-top:20px;">
+    <h3>👩‍🎓 دانش‌آموزهای موجود</h3>
+    <ul>
+    {% for u, d in users.items() if d.role == 'student' %}
+        <li><b>{{ d.name }}</b> — <span class="muted">{{ u }}</span></li>
+    {% else %}
+        <li class="muted">هنوز دانش‌آموزی توسط ادمین اضافه نشده.</li>
+    {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+{% endblock %}
